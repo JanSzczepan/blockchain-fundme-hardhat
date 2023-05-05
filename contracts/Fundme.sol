@@ -15,13 +15,16 @@ contract FundMe {
    address public i_owner;
    uint256 public constant MINIMUM_USD = 50 * 10 ** 18;
 
-   constructor() {
+   AggregatorV3Interface public priceFeed;
+
+   constructor(address priceFeedAddress) {
       i_owner = msg.sender;
+      priceFeed = AggregatorV3Interface(priceFeedAddress);
    }
 
    function fund() public payable {
       require(
-         msg.value.getConversionRate() >= MINIMUM_USD,
+         msg.value.getConversionRate(priceFeed) >= MINIMUM_USD,
          'You need to spend more ETH!'
       );
 
@@ -30,9 +33,6 @@ contract FundMe {
    }
 
    function getVersion() public view returns (uint256) {
-      AggregatorV3Interface priceFeed = AggregatorV3Interface(
-         0x694AA1769357215DE4FAC081bf1f309aDC325306
-      );
       return priceFeed.version();
    }
 
