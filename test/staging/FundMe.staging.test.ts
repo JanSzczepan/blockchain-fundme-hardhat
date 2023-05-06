@@ -1,4 +1,4 @@
-import { deployments, ethers, network } from 'hardhat'
+import { ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { developmentChains } from '../../helper-hardhat-config'
 import { FundMe } from '../../typechain-types'
