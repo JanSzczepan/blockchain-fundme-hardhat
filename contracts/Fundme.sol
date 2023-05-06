@@ -5,15 +5,17 @@ import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
 import './PriceConverter.sol';
 
 error FundMe__NotOwner();
+error FundMe__NotEnoughETH();
+error FundMe__CallFailed();
 
 contract FundMe {
    using PriceConverter for uint256;
 
-   mapping(address => uint256) public s_addressToAmountFunded;
-   address[] public s_funders;
-   address public i_owner;
+   mapping(address => uint256) private s_addressToAmountFunded;
+   address[] private s_funders;
+   AggregatorV3Interface private s_priceFeed;
+   address private i_owner;
    uint256 public constant MINIMUM_USD = 50 * 10 ** 18;
-   AggregatorV3Interface public s_priceFeed;
 
    constructor(address priceFeedAddress) {
       i_owner = msg.sender;
@@ -29,10 +31,8 @@ contract FundMe {
    }
 
    function fund() public payable {
-      require(
-         msg.value.getConversionRate(s_priceFeed) >= MINIMUM_USD,
-         'You need to spend more ETH!'
-      );
+      if (msg.value.getConversionRate(s_priceFeed) < MINIMUM_USD)
+         revert FundMe__NotEnoughETH();
 
       s_addressToAmountFunded[msg.sender] += msg.value;
       s_funders.push(msg.sender);
@@ -63,6 +63,25 @@ contract FundMe {
       (bool callSuccess, ) = payable(msg.sender).call{
          value: address(this).balance
       }('');
-      require(callSuccess, 'Call failed');
+
+      if (!callSuccess) revert FundMe__CallFailed();
+   }
+
+   function getAddressToAmountFunded(
+      address funderAddress
+   ) public view returns (uint256) {
+      return s_addressToAmountFunded[funderAddress];
+   }
+
+   function getFunder(uint256 index) public view returns (address) {
+      return s_funders[index];
+   }
+
+   function getPriceFeed() public view returns (AggregatorV3Interface) {
+      return s_priceFeed;
+   }
+
+   function getOwner() public view returns (address) {
+      return i_owner;
    }
 }

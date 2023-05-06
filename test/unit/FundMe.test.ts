@@ -23,7 +23,7 @@ describe('FundMe', function () {
 
    describe('constructor', function () {
       it('Sets the price feed address corectly', async function () {
-         const priceFeed = await fundMe.s_priceFeed()
+         const priceFeed = await fundMe.getPriceFeed()
          const expectedPriceFeed = mockV3Aggregator.address
          expect(priceFeed).to.equal(expectedPriceFeed)
       })
@@ -31,15 +31,16 @@ describe('FundMe', function () {
 
    describe('fund', function () {
       it("Fails if you don't send enough ETH", async function () {
-         await expect(fundMe.fund({ value: 0 })).to.be.revertedWith(
-            'You need to spend more ETH!'
+         await expect(fundMe.fund({ value: 0 })).to.be.revertedWithCustomError(
+            fundMe,
+            'FundMe__NotEnoughETH'
          )
       })
 
       it('Updates the amount funded data structure', async function () {
          const value = ethers.utils.parseEther('1')
          await fundMe.fund({ value })
-         const expectedValue = await fundMe.s_addressToAmountFunded(
+         const expectedValue = await fundMe.getAddressToAmountFunded(
             deployer.address
          )
          expect(expectedValue.toString()).to.equal(value.toString())
@@ -48,7 +49,7 @@ describe('FundMe', function () {
       it('Adds funder to array of funders', async function () {
          const value = ethers.utils.parseEther('1')
          await fundMe.fund({ value })
-         const funder = await fundMe.s_funders(0)
+         const funder = await fundMe.getFunder(0)
          expect(funder).to.equal(deployer.address)
       })
    })
@@ -120,10 +121,10 @@ describe('FundMe', function () {
          expect(endingDeploerBalance.add(gasCost).toString()).to.equal(
             startingDeployerBalance.add(startingFundMeBalance).toString()
          )
-         await expect(fundMe.s_funders(0)).to.be.reverted
+         await expect(fundMe.getFunder(0)).to.be.reverted
          for (let i = 1; i < 6; i++) {
             expect(
-               await fundMe.s_addressToAmountFunded(signers[i].address)
+               await fundMe.getAddressToAmountFunded(signers[i].address)
             ).to.equal('0')
          }
       })
